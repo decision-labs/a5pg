@@ -2,6 +2,21 @@
 
 Equal-area A5 spatial index functions for PostgreSQL, implemented with pgrx.
 
+A5 is a new Discrete Global Grid System (DGGS) proposed by Felix Palmer https://github.com/felixpalmer. It is based on irregular pentagons, and offers a low areal distortion, making the grid more useful than H3 when the goal is to map densities across different cities and continents. For more see a5geo.org
+
+![A5 Visuals](docs/a5-visuals.png)
+
+This extension wraps the A5 equal-area spatial index Rust crate and exposes a small set of convenient SQL functions.
+
+## Why A5?
+
+Equal-area indexing ensures each cell covers the same surface area on the globe, so counts, densities, and aggregations are comparable across latitudes without distortion—ideal for analytics, dashboards, and geostatistics.
+
+## Source libraries
+
+- A5 project/site: https://a5geo.org/
+- Rust crate docs: https://docs.rs/a5/latest/a5/
+
 ## Quick start
 
 - Prereqs: Rust, cargo, and cargo-pgrx installed and initialized for your local Postgres versions.
@@ -18,6 +33,39 @@ Equal-area A5 spatial index functions for PostgreSQL, implemented with pgrx.
 - Install and try in psql (example for pg17):
   - `cargo pgrx install pg17`
   - In psql: `CREATE EXTENSION a5pg;`
+
+## Testing matrix (macOS)
+
+Run the test suite against multiple Postgres versions on macOS.
+
+- Using Homebrew-installed Postgres (Apple Silicon prefix shown):
+
+```bash
+# Install Postgres versions (if needed)
+brew install postgresql@15 postgresql@16 postgresql@17
+
+# Initialize cargo-pgrx with Homebrew pg_config paths
+cargo pgrx init \
+  --pg15 /opt/homebrew/opt/postgresql@15/bin/pg_config \
+  --pg16 /opt/homebrew/opt/postgresql@16/bin/pg_config \
+  --pg17 /opt/homebrew/opt/postgresql@17/bin/pg_config
+
+# Run the full matrix
+for v in pg15 pg16 pg17; do cargo pgrx test "$v" || exit 1; done
+```
+
+- Or let pgrx download test servers (if you don’t have local installs):
+
+```bash
+cargo pgrx init --pg15 download --pg16 download \
+  --pg17 /opt/homebrew/opt/postgresql@17/bin/pg_config
+
+for v in pg15 pg16 pg17; do cargo pgrx test "$v" || exit 1; done
+```
+
+Notes:
+- On Intel macOS, the Homebrew prefix is usually `/usr/local` instead of `/opt/homebrew`.
+- `cargo pgrx test <pgver>` spins up a temporary Postgres, runs `#[pg_test]` tests in-process, then tears it down.
 
 ## Functions
 
@@ -53,3 +101,21 @@ Equal-area A5 spatial index functions for PostgreSQL, implemented with pgrx.
 - Feature flags in `Cargo.toml` are set up for pg13–pg18 and `pg_test`.
 - Tests use `#[pg_test]` and a per-test schema via `#[pg_schema]`.
 - Versioned SQL is written to `sql/a5pg--<version>.sql` using `cargo pgrx schema <pgver>`.
+
+## Credits
+
+Made with ❤️ by the geobase.app team.
+
+## TODO
+
+- Add CI matrix for OS and Postgres versions:
+  - OS: `ubuntu-latest`, `macos-latest`
+  - Postgres: `pg15`, `pg16`, `pg17`
+  - Steps:
+    - Setup Rust (stable) and install `cargo-pgrx`
+    - Initialize pgrx per job:
+      - Linux: `cargo pgrx init --pg15 download --pg16 download --pg17 download`
+      - macOS: use Homebrew `pg_config` paths or `download`
+    - Run: `cargo pgrx test ${{ matrix.pg }}`
+  - Optional: cache cargo/target to speed up builds
+  - Optional: add a packaging job (`cargo pgrx package <pgver>`) to publish artifacts
