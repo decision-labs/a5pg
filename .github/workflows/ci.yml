@@ -8,13 +8,13 @@ on:
 
 jobs:
   test:
-    name: Test (${{ matrix.os }}, ${{ matrix.pg }})
-    runs-on: ${{ matrix.os }}
+    name: Test (Postgres ${{ matrix.pg_version }})
+    runs-on: ubuntu-latest
+    
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        pg: [pg15, pg16, pg17]
+        pg_version: [15, 16, 17]
     
     steps:
       - name: Checkout code
@@ -23,50 +23,91 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install system dependencies (Ubuntu)
-        if: runner.os == 'Linux'
+      - name: Install PostgreSQL ${{ matrix.pg_version }}
         run: |
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
           sudo apt-get update
-          sudo apt-get install -y libreadline-dev zlib1g-dev flex bison libxml2-dev libxslt-dev libssl-dev libxml2-utils xsltproc ccache pkg-config
-
-      - name: Install system dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew install icu4c pkg-config
-          echo "PKG_CONFIG_PATH=$(brew --prefix icu4c)/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
+          sudo apt-get install -y postgresql-${{ matrix.pg_version }} postgresql-server-dev-${{ matrix.pg_version }}
 
       - name: Cache cargo registry
         uses: actions/cache@v4
         with:
           path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
+          key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-registry-
 
       - name: Cache cargo index
         uses: actions/cache@v4
         with:
           path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-index-
+          key: cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-index-
 
       - name: Cache target directory
         uses: actions/cache@v4
         with:
           path: target
-          key: ${{ runner.os }}-${{ matrix.pg }}-target-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.pg }}-target-
+          key: pg${{ matrix.pg_version }}-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: pg${{ matrix.pg_version }}-target-
 
       - name: Install cargo-pgrx
         run: cargo install cargo-pgrx --locked
 
-      - name: Initialize pgrx (download test servers)
-        run: cargo pgrx init --${{ matrix.pg }} download
+      - name: Initialize pgrx with installed Postgres
+        run: cargo pgrx init --pg${{ matrix.pg_version }} /usr/lib/postgresql/${{ matrix.pg_version }}/bin/pg_config
 
       - name: Run tests
-        run: cargo pgrx test ${{ matrix.pg }}
+        run: cargo pgrx test pg${{ matrix.pg_version }}
+
+  test-macos:
+    name: Test macOS (Postgres ${{ matrix.pg_version }})
+    runs-on: macos-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        pg_version: [15, 16, 17]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install PostgreSQL ${{ matrix.pg_version }}
+        run: brew install postgresql@${{ matrix.pg_version }}
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-registry-
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-index-
+
+      - name: Cache target directory
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: macos-pg${{ matrix.pg_version }}-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: macos-pg${{ matrix.pg_version }}-target-
+
+      - name: Install cargo-pgrx
+        run: cargo install cargo-pgrx --locked
+
+      - name: Initialize pgrx with Homebrew Postgres
+        run: cargo pgrx init --pg${{ matrix.pg_version }} $(brew --prefix postgresql@${{ matrix.pg_version }})/bin/pg_config
+
+      - name: Run tests
+        run: cargo pgrx test pg${{ matrix.pg_version }}
 
   lint:
     name: Lint and Format
