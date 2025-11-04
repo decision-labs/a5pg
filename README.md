@@ -21,23 +21,23 @@ Equal-area A5 spatial index functions for PostgreSQL, implemented with pgrx.
 
 ## Functions
 
-- hello_a5pg() -> text
-- a5_lonlat_to_cell(lon double precision, lat double precision, res int) -> text (hex id)
-- a5_cell_to_lonlat_json(cell_hex text) -> jsonb
-- a5_cell_boundary_geojson(cell_hex text) -> text (GeoJSON Polygon)
-- a5_lonlat_to_cell_id(lon double precision, lat double precision, res int) -> bigint
-- a5_cell_id_to_lonlat_json(cell_id bigint) -> jsonb
-- a5_cell_resolution(cell_id bigint) -> int
-- a5_cell_parent_id(cell_id bigint, target_resolution int) -> bigint
-- a5_cell_children_ids(cell_id bigint, target_resolution int) -> bigint[]
-- a5_cell_id_boundary_geojson(cell_id bigint) -> text (GeoJSON Polygon)
+- `hello_a5pg() -> text`
+- `a5_lonlat_to_cell(lon double precision, lat double precision, res int) -> text (hex id)`
+- `a5_cell_to_lonlat_json(cell_hex text) -> jsonb`
+- `a5_cell_boundary_geojson(cell_hex text) -> text (GeoJSON Polygon)`
+- `a5_lonlat_to_cell_id(lon double precision, lat double precision, res int) -> bigint`
+- `a5_cell_id_to_lonlat_json(cell_id bigint) -> jsonb`
+- `a5_cell_resolution(cell_id bigint) -> int`
+- `a5_cell_parent_id(cell_id bigint, target_resolution int) -> bigint`
+- `a5_cell_children_ids(cell_id bigint, target_resolution int) -> bigint[]`
+- `a5_cell_id_boundary_geojson(cell_id bigint) -> text (GeoJSON Polygon)`
 
 ### Extras
 
 - Numeric overload:
-  - a5_lonlat_to_cell_id(numeric, numeric, int) -> bigint
+  - `a5_lonlat_to_cell_id(numeric, numeric, int) -> bigint`
 - PostGIS wrapper (created only if `geometry` type exists):
-  - a5_point_to_cell_id(geom geometry, res int) -> bigint
+  - `a5_point_to_cell_id(geom geometry, res int) -> bigint`
 
 ## Examples
 
