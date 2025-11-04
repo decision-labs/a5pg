@@ -98,7 +98,7 @@ Notes:
 
 ## Development notes
 
-- Feature flags in `Cargo.toml` are set up for pg13–pg18 and `pg_test`.
+- Feature flags in `Cargo.toml` are set up for pg13-pg18 and `pg_test`.
 - Tests use `#[pg_test]` and a per-test schema via `#[pg_schema]`.
 - Versioned SQL is written to `sql/a5pg--<version>.sql` using `cargo pgrx schema <pgver>`.
 
