@@ -119,27 +119,28 @@ jobs:
     name: Lint and Format
     runs-on: ubuntu-latest
     
+    container:
+      image: postgres:17
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Install build essentials in container
+        run: |
+          apt-get update
+          apt-get install -y curl build-essential libssl-dev pkg-config
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
 
-      - name: Install PostgreSQL 17 (for clippy)
-        run: |
-          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-          sudo apt-get update
-          sudo apt-get install -y postgresql-server-dev-17
-
       - name: Install cargo-pgrx
         run: cargo install cargo-pgrx --locked
 
-      - name: Initialize pgrx
-        run: cargo pgrx init --pg17 /usr/lib/postgresql/17/bin/pg_config
+      - name: Initialize pgrx with container pg_config
+        run: cargo pgrx init --pg17 $(which pg_config)
 
       - name: Check formatting
         run: cargo fmt --all -- --check
@@ -147,4 +148,4 @@ jobs:
       - name: Run clippy
         run: cargo clippy --all-targets --no-default-features --features pg17 -- -D warnings
         env:
-          PGRX_HOME: /home/runner/.pgrx
+          PGRX_HOME: /github/home/.pgrx
