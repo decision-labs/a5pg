@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    name: Test (Postgres ${{ matrix.pg_version }})
+    name: Test Ubuntu (Postgres ${{ matrix.pg_version }})
     runs-on: ubuntu-latest
     
     strategy:
@@ -58,8 +58,13 @@ jobs:
         run: |
           cargo pgrx init --pg${{ matrix.pg_version }} /usr/lib/postgresql/${{ matrix.pg_version }}/bin/pg_config
           
+      - name: Setup permissions for extension install
+        run: |
+          sudo chmod -R a+w /usr/share/postgresql/${{ matrix.pg_version }}/extension
+          sudo chmod -R a+w /usr/lib/postgresql/${{ matrix.pg_version }}/lib
+          
       - name: Run tests
-        run: sudo -E env "PATH=$PATH" cargo pgrx test pg${{ matrix.pg_version }}
+        run: cargo pgrx test pg${{ matrix.pg_version }}
         env:
           PGRX_HOME: /home/runner/.pgrx
 
