@@ -1,14 +1,7 @@
 use pgrx::prelude::*;
 use serde_json;
 
-use a5::{
-    LonLat,
-    lonlat_to_cell,
-    cell_to_lonlat,
-    cell_to_boundary,
-    u64_to_hex,
-    hex_to_u64,
-};
+use a5::{cell_to_boundary, cell_to_lonlat, hex_to_u64, lonlat_to_cell, u64_to_hex, LonLat};
 
 pgrx::pg_module_magic!();
 
@@ -64,7 +57,10 @@ fn a5_lonlat_to_cell_id(lon: f64, lat: f64, resolution: i32) -> i64 {
         Err(e) => pgrx::error!("{e}"),
     };
     if id_u64 > i64::MAX as u64 {
-        pgrx::error!("A5 cell id {} does not fit into BIGINT (signed 64-bit)", id_u64);
+        pgrx::error!(
+            "A5 cell id {} does not fit into BIGINT (signed 64-bit)",
+            id_u64
+        );
     }
     id_u64 as i64
 }
@@ -188,8 +184,7 @@ $$;
 #[pgrx::pg_schema] // sets up a per-test schema when running pgrx tests
 mod tests {
     use super::*;
-    
-    
+
     #[pg_test]
     fn a5pg_smoke_hello() {
         assert_eq!(hello_a5pg(), "Hello, a5pg");
