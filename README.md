@@ -104,18 +104,19 @@ Notes:
 
 ## Credits
 
-Made with ❤️ by the geobase.app team.
+Made with ❤️ by the [geobase.app](https://geobase.app) team.
 
-## TODO
+## CI
 
-- Add CI matrix for OS and Postgres versions:
-  - OS: `ubuntu-latest`, `macos-latest`
-  - Postgres: `pg15`, `pg16`, `pg17`
-  - Steps:
-    - Setup Rust (stable) and install `cargo-pgrx`
-    - Initialize pgrx per job:
-      - Linux: `cargo pgrx init --pg15 download --pg16 download --pg17 download`
-      - macOS: use Homebrew `pg_config` paths or `download`
-    - Run: `cargo pgrx test ${{ matrix.pg }}`
-  - Optional: cache cargo/target to speed up builds
-  - Optional: add a packaging job (`cargo pgrx package <pgver>`) to publish artifacts
+GitHub Actions CI is configured to test on:
+- OS: `ubuntu-latest`, `macos-latest`
+- Postgres: `pg15`, `pg16`, `pg17`
+
+The workflow runs on every push/PR to `main` and includes:
+- Rust stable toolchain
+- cargo-pgrx installation and initialization (download test servers)
+- Full test suite via `cargo pgrx test <pgver>`
+- Linting (rustfmt, clippy)
+- Cargo caching to speed up builds
+
+See [`.github/workflows/ci.yml`](.github/workflows/ci.yml) for details.
