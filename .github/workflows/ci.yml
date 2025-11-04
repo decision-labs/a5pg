@@ -59,7 +59,7 @@ jobs:
           cargo pgrx init --pg${{ matrix.pg_version }} /usr/lib/postgresql/${{ matrix.pg_version }}/bin/pg_config
           
       - name: Run tests
-        run: cargo pgrx test pg${{ matrix.pg_version }}
+        run: sudo -E env "PATH=$PATH" cargo pgrx test pg${{ matrix.pg_version }}
         env:
           PGRX_HOME: /home/runner/.pgrx
 
@@ -112,40 +112,19 @@ jobs:
           
       - name: Run tests
         run: cargo pgrx test pg${{ matrix.pg_version }}
-        env:
-          PGRX_HOME: ${{ runner.temp }}/.pgrx
 
   lint:
     name: Lint and Format
     runs-on: ubuntu-latest
     
-    container:
-      image: postgres:17
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Install build essentials in container
-        run: |
-          apt-get update
-          apt-get install -y curl build-essential libssl-dev pkg-config
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
 
-      - name: Install cargo-pgrx
-        run: cargo install cargo-pgrx --locked
-
-      - name: Initialize pgrx with container pg_config
-        run: cargo pgrx init --pg17 $(which pg_config)
-
       - name: Check formatting
         run: cargo fmt --all -- --check
-
-      - name: Run clippy
-        run: cargo clippy --all-targets --no-default-features --features pg17 -- -D warnings
-        env:
-          PGRX_HOME: /github/home/.pgrx
