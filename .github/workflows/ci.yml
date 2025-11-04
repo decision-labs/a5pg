@@ -55,10 +55,13 @@ jobs:
         run: cargo install cargo-pgrx --locked
 
       - name: Initialize pgrx with installed Postgres
-        run: cargo pgrx init --pg${{ matrix.pg_version }} /usr/lib/postgresql/${{ matrix.pg_version }}/bin/pg_config
-
+        run: |
+          cargo pgrx init --pg${{ matrix.pg_version }} /usr/lib/postgresql/${{ matrix.pg_version }}/bin/pg_config
+          
       - name: Run tests
         run: cargo pgrx test pg${{ matrix.pg_version }}
+        env:
+          PGRX_HOME: /home/runner/.pgrx
 
   test-macos:
     name: Test macOS (Postgres ${{ matrix.pg_version }})
@@ -104,10 +107,13 @@ jobs:
         run: cargo install cargo-pgrx --locked
 
       - name: Initialize pgrx with Homebrew Postgres
-        run: cargo pgrx init --pg${{ matrix.pg_version }} $(brew --prefix postgresql@${{ matrix.pg_version }})/bin/pg_config
-
+        run: |
+          cargo pgrx init --pg${{ matrix.pg_version }} $(brew --prefix postgresql@${{ matrix.pg_version }})/bin/pg_config
+          
       - name: Run tests
         run: cargo pgrx test pg${{ matrix.pg_version }}
+        env:
+          PGRX_HOME: ${{ runner.temp }}/.pgrx
 
   lint:
     name: Lint and Format
@@ -122,8 +128,23 @@ jobs:
         with:
           components: rustfmt, clippy
 
+      - name: Install PostgreSQL 17 (for clippy)
+        run: |
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo apt-get update
+          sudo apt-get install -y postgresql-server-dev-17
+
+      - name: Install cargo-pgrx
+        run: cargo install cargo-pgrx --locked
+
+      - name: Initialize pgrx
+        run: cargo pgrx init --pg17 /usr/lib/postgresql/17/bin/pg_config
+
       - name: Check formatting
         run: cargo fmt --all -- --check
 
       - name: Run clippy
         run: cargo clippy --all-targets --no-default-features --features pg17 -- -D warnings
+        env:
+          PGRX_HOME: /home/runner/.pgrx
