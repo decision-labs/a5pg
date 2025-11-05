@@ -19,9 +19,29 @@ Equal-area indexing ensures each cell covers the same surface area on the globe,
 
 ## Quick start
 
-- Prereqs: Rust, cargo, and cargo-pgrx installed and initialized for your local Postgres versions.
-  - If needed: `cargo pgrx init`
+### Prerequisites
+- Rust, cargo, and cargo-pgrx installed
+- PostgreSQL 15, 16, or 17 with dev packages
 
+### Using Make (recommended)
+```bash
+# Show all available targets
+make help
+
+# Run tests (default: pg17)
+make test
+
+# Run tests for all versions
+make test-all
+
+# Build and run tests in Docker (Linux)
+make docker-test
+
+# Generate SQL schema
+make schema
+```
+
+### Manual commands
 - Run tests against specific Postgres versions:
   - `cargo pgrx test pg15`
   - `cargo pgrx test pg16`
@@ -33,6 +53,20 @@ Equal-area indexing ensures each cell covers the same surface area on the globe,
 - Install and try in psql (example for pg17):
   - `cargo pgrx install pg17`
   - In psql: `CREATE EXTENSION a5pg;`
+
+### Docker (Linux testing)
+```bash
+# Build Docker image with all Postgres versions
+make docker-build
+
+# Run tests for pg15, pg16, pg17
+make docker-test
+
+# Open interactive shell
+make docker-shell
+```
+
+See [docker/README.md](docker/README.md) for more Docker options.
 
 ## Testing matrix (macOS)
 

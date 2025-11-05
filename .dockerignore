@@ -1,0 +1,13 @@
+target/
+.git/
+*.log
+.DS_Store
+.pgrx/
+.github/
+docker/
+*.md
+.gitignore
+.vscode/
+*.swp
+*.swo
+*~

@@ -1,0 +1,48 @@
+# Multi-stage build: compile a5pg once, ship a tiny runtime image with Postgres only
+# Usage:
+#   docker build -t a5pg:pg17-runtime -f docker/Dockerfile.runtime --build-arg PG_VERSION=17 .
+
+ARG PG_VERSION=17
+
+FROM rust:1.89-slim AS builder
+ARG PG_VERSION
+
+# System deps to build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget gnupg lsb-release build-essential libssl-dev pkg-config git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Postgres APT repo
+RUN sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list' \
+ && wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+
+# Install only requested Postgres and dev headers
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_VERSION} postgresql-server-dev-${PG_VERSION} \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build prerequisites
+RUN cargo install cargo-pgrx --locked
+RUN cargo pgrx init --pg${PG_VERSION} /usr/lib/postgresql/${PG_VERSION}/bin/pg_config
+
+WORKDIR /workspace
+COPY . .
+
+# Build the extension (release)
+RUN cargo pgrx build --release pg${PG_VERSION}
+
+# Stage 2: tiny runtime with Postgres only
+FROM postgres:${PG_VERSION}
+ARG PG_VERSION
+
+# Copy compiled extension artifacts from builder stage
+# Note: pgrx places built .so under target/release, and SQL/control can be generated via schema
+COPY --from=builder /workspace/target/release/a5pg.so /usr/lib/postgresql/${PG_VERSION}/lib/a5pg.so
+COPY --from=builder /workspace/sql/a5pg--*.sql /usr/share/postgresql/${PG_VERSION}/extension/
+COPY --from=builder /workspace/a5pg.control /usr/share/postgresql/${PG_VERSION}/extension/a5pg.control
+
+# Verify the extension is visible
+RUN ls -l /usr/share/postgresql/${PG_VERSION}/extension | grep a5pg && \
+    ls -l /usr/lib/postgresql/${PG_VERSION}/lib | grep a5pg
+
+# Default Postgres entrypoint/cmd from base image will start server

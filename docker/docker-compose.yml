@@ -1,0 +1,74 @@
+## Compose file for building/testing the a5pg extension inside Docker
+## Note: Compose 'version' key is deprecated; removing to avoid warnings
+
+services:
+  test-pg15:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      - PGRX_HOME=/home/pgrxuser/.pgrx
+      - USER=pgrxuser
+      - RUSTC_WRAPPER=sccache
+      - SCCACHE_DIR=/home/pgrxuser/.cache/sccache
+      - CARGO_INCREMENTAL=0
+    volumes:
+      - ..:/workspace
+      - sccache:/home/pgrxuser/.cache/sccache
+    working_dir: /workspace
+    user: pgrxuser
+    ## Ensure a fresh PGDATA so role/user matches $USER for each run
+    command: bash -lc "rm -rf target/test-pgdata && /usr/local/cargo/bin/cargo pgrx test pg15"
+    
+  test-pg16:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      - PGRX_HOME=/home/pgrxuser/.pgrx
+      - USER=pgrxuser
+      - RUSTC_WRAPPER=sccache
+      - SCCACHE_DIR=/home/pgrxuser/.cache/sccache
+      - CARGO_INCREMENTAL=0
+    volumes:
+      - ..:/workspace
+      - sccache:/home/pgrxuser/.cache/sccache
+    working_dir: /workspace
+    user: pgrxuser
+    ## Ensure a fresh PGDATA so role/user matches $USER for each run
+    command: bash -lc "rm -rf target/test-pgdata && /usr/local/cargo/bin/cargo pgrx test pg16"
+    
+  test-pg17:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      - PGRX_HOME=/home/pgrxuser/.pgrx
+      - USER=pgrxuser
+      - RUSTC_WRAPPER=sccache
+      - SCCACHE_DIR=/home/pgrxuser/.cache/sccache
+      - CARGO_INCREMENTAL=0
+    volumes:
+      - ..:/workspace
+      - sccache:/home/pgrxuser/.cache/sccache
+    working_dir: /workspace
+    user: pgrxuser
+    ## Ensure a fresh PGDATA so role/user matches $USER for each run
+    command: bash -lc "rm -rf target/test-pgdata && /usr/local/cargo/bin/cargo pgrx test pg17"
+
+  build:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      - RUSTC_WRAPPER=sccache
+      - SCCACHE_DIR=/home/pgrxuser/.cache/sccache
+      - CARGO_INCREMENTAL=0
+    volumes:
+      - ..:/workspace
+      - sccache:/home/pgrxuser/.cache/sccache
+    working_dir: /workspace
+    command: bash -c "cargo build --no-default-features --features pg17 && cargo fmt --all -- --check"
+
+volumes:
+  sccache:
