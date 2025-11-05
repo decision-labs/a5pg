@@ -1,3 +1,5 @@
+[![CI](https://github.com/decision-labs/a5pg/actions/workflows/ci.yml/badge.svg)](https://github.com/decision-labs/a5pg/actions/workflows/ci.yml)
+
 # a5pg
 
 Equal-area A5 spatial index functions for PostgreSQL, implemented with pgrx.
