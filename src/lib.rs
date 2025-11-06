@@ -1,5 +1,4 @@
 use pgrx::prelude::*;
-use serde_json;
 
 use a5::{cell_to_lonlat, lonlat_to_cell, LonLat};
 
@@ -71,7 +70,6 @@ fn a5_cell_to_boundary(cell_id: i64) -> Option<Vec<Vec<f64>>> {
     )
 }
 
-
 // 1) Resolution: get_resolution returns i32 directly (not a Result)
 #[pg_extern]
 fn a5_get_resolution(cell_id: i64) -> i32 {
@@ -111,7 +109,6 @@ fn a5_cell_to_children(cell_id: i64, target_resolution: i32) -> Vec<i64> {
         Err(e) => pgrx::error!("{e}"),
     }
 }
-
 
 use pgrx::prelude::extension_sql;
 
@@ -201,21 +198,30 @@ mod tests {
     fn a5pg_info_returns_version() {
         let info = a5pg_info();
         let v: &serde_json::Value = &info.0;
-        
+
         // Verify both version fields exist
-        assert!(v.get("a5pg_version").is_some(), "a5pg_version should be present");
-        assert!(v.get("a5_version").is_some(), "a5_version should be present");
-        
+        assert!(
+            v.get("a5pg_version").is_some(),
+            "a5pg_version should be present"
+        );
+        assert!(
+            v.get("a5_version").is_some(),
+            "a5_version should be present"
+        );
+
         // Verify a5pg_version matches CARGO_PKG_VERSION
         let a5pg_version = v.get("a5pg_version").and_then(|x| x.as_str()).unwrap();
         assert_eq!(a5pg_version, env!("CARGO_PKG_VERSION"));
-        
+
         // Verify a5_version is "0.6"
         let a5_version = v.get("a5_version").and_then(|x| x.as_str()).unwrap();
         assert_eq!(a5_version, "0.6");
-        
+
         // Print the info for visibility
-        eprintln!("a5pg_info() output: {}", serde_json::to_string_pretty(v).unwrap());
+        eprintln!(
+            "a5pg_info() output: {}",
+            serde_json::to_string_pretty(v).unwrap()
+        );
     }
 }
 
