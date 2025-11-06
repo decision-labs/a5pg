@@ -24,7 +24,7 @@ install: ## Install the extension for the default Postgres version
 	cargo pgrx install --pg-config /usr/lib/postgresql/$(PG_VERSION)/bin/pg_config
 
 schema: ## Generate SQL schema for the default Postgres version
-	cargo pgrx schema pg$(PG_VERSION) > sql/a5pg--0.1.0.sql
+	cargo pgrx schema pg$(PG_VERSION) > sql/a5pg--0.2.0.sql
 
 fmt: ## Format code with rustfmt
 	cargo fmt --all
