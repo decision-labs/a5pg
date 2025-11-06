@@ -55,8 +55,8 @@ make schema
   - `cargo pgrx test pg16`
   - `cargo pgrx test pg17`
 
-- Generate extension SQL (example for 0.1.0 and pg17):
-  - `cargo pgrx schema pg17 > sql/a5pg--0.1.0.sql`
+- Generate extension SQL (example for 0.2.0 and pg17):
+  - `cargo pgrx schema pg17 > sql/a5pg--0.2.0.sql`
 
 - Install and try in psql (example for pg17):
   - `cargo pgrx install pg17`
