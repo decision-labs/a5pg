@@ -68,7 +68,7 @@ pts AS (
 -- 3) Map to A5 cell ids (✅ correct lon/lat: X=lon, Y=lat)
 SELECT DISTINCT
   part,
-  a5_lonlat_to_cell_id(ST_X(pt), ST_Y(pt), :res::int) AS cell_id
+  a5_lonlat_to_cell(ST_X(pt), ST_Y(pt), :res::int) AS cell_id
 INTO public.elephant_cells
 FROM pts;
 
@@ -79,4 +79,4 @@ COMMIT;
 
 -- Inspect:
 -- SELECT * FROM public.elephant_cells ORDER BY part, cell_id LIMIT 50;
--- SELECT part, a5_cell_id_boundary_geojson(cell_id) FROM public.elephant_cells LIMIT 5;
+-- SELECT part, a5_cell_to_boundary(cell_id) FROM public.elephant_cells LIMIT 5;

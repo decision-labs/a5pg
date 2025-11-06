@@ -14,7 +14,7 @@ A5 is a new Discrete Global Grid System (DGGS) proposed by Felix Palmer https://
 
 ![A5 Visuals](docs/a5-visuals.png)
 
-This extension wraps the A5 equal-area spatial index Rust crate and exposes a small set of convenient SQL functions.
+This extension wraps the A5 equal-area spatial index Rust crate and exposes a small set of convenient SQL functions. The API is designed to be compatible with the DuckDB a5 extension for cross-database query portability.
 
 ## Why A5?
 
@@ -111,32 +111,70 @@ Notes:
 
 ## Functions
 
-- `hello_a5pg() -> text`
-- `a5_lonlat_to_cell(lon double precision, lat double precision, res int) -> text (hex id)`
-- `a5_cell_to_lonlat_json(cell_hex text) -> jsonb`
-- `a5_cell_boundary_geojson(cell_hex text) -> text (GeoJSON Polygon)`
-- `a5_lonlat_to_cell_id(lon double precision, lat double precision, res int) -> bigint`
-- `a5_cell_id_to_lonlat_json(cell_id bigint) -> jsonb`
-- `a5_cell_resolution(cell_id bigint) -> int`
-- `a5_cell_parent_id(cell_id bigint, target_resolution int) -> bigint`
-- `a5_cell_children_ids(cell_id bigint, target_resolution int) -> bigint[]`
-- `a5_cell_id_boundary_geojson(cell_id bigint) -> text (GeoJSON Polygon)`
+### Core Functions (DuckDB-compatible API)
+
+**Cell ID Conversion:**
+- `a5_lonlat_to_cell(lon double precision, lat double precision, res int) -> bigint` - Convert lon/lat to bigint cell ID
+
+**Reverse Conversion (returns native arrays):**
+- `a5_cell_to_lonlat(cell_id bigint) -> double precision[]` - Convert bigint cell ID to [lon, lat] array
+
+**Cell Hierarchy:**
+- `a5_get_resolution(cell_id bigint) -> int` - Get resolution of a cell
+- `a5_cell_to_parent(cell_id bigint, target_resolution int) -> bigint` - Get parent cell at target resolution
+- `a5_cell_to_children(cell_id bigint, target_resolution int) -> bigint[]` - Get children cells at target resolution
+
+**Boundaries (returns native arrays):**
+- `a5_cell_to_boundary(cell_id bigint) -> double precision[][]` - Get boundary as array of [lon, lat] coordinate pairs
+
+**Version Info:**
+- `a5pg_version() -> text` - Extension version
+- `a5pg_info() -> jsonb` - Extension and library version info
 
 ### Extras
 
 - Numeric overload:
-  - `a5_lonlat_to_cell_id(numeric, numeric, int) -> bigint`
+  - `a5_lonlat_to_cell(lon numeric, lat numeric, res int) -> bigint`
 - PostGIS wrapper (created only if `geometry` type exists):
-  - `a5_point_to_cell_id(geom geometry, res int) -> bigint`
+  - `a5_point_to_cell(geom geometry, res int) -> bigint`
 
 ## Examples
 
-- Get a cell id:
-  - `SELECT a5_lonlat_to_cell_id(-73.9857, 40.7580, 10);`
-- Get center point as JSON:
-  - `SELECT a5_cell_id_to_lonlat_json(123456789012345);`
-- Get boundary as GeoJSON:
-  - `SELECT a5_cell_id_boundary_geojson(123456789012345);`
+**Get a cell ID:**
+```sql
+SELECT a5_lonlat_to_cell(-73.9857, 40.7580, 10);
+-- Returns: 2742822465196523520
+```
+
+**Get center point as array [lon, lat]:**
+```sql
+SELECT a5_cell_to_lonlat(2742822465196523520);
+-- Returns: {-73.96422570580987, 40.750993086983314}
+```
+
+**Get boundary as array of coordinate pairs:**
+```sql
+SELECT a5_cell_to_boundary(2742822465196523520);
+-- Returns: {{-74.01466735453606, 40.72977833231509}, {-73.95656875648214, 40.72969872633765}, ...}
+```
+
+**Get parent and children:**
+```sql
+SELECT a5_get_resolution(2742822465196523520);  -- Returns: 10
+SELECT a5_cell_to_parent(2742822465196523520, 8);  -- Get parent at resolution 8
+SELECT a5_cell_to_children(2742822465196523520, 12);  -- Get children at resolution 12
+```
+
+**Convert boundary array to GeoJSON (using PostgreSQL functions):**
+```sql
+SELECT jsonb_build_object(
+    'type', 'Polygon',
+    'coordinates', jsonb_build_array(
+        (SELECT jsonb_agg(jsonb_build_array(point[1], point[2]))
+         FROM unnest(a5_cell_to_boundary(2742822465196523520)) AS point)
+    )
+);
+```
 
 ## Development notes
 

@@ -23,7 +23,7 @@ DROP TABLE IF EXISTS public.elephant_vertices_cells;
 CREATE TABLE public.elephant_vertices_cells AS
 SELECT DISTINCT
     part,
-    a5_lonlat_to_cell_id(lon, lat, :res::int) AS cell_id
+    a5_lonlat_to_cell(lon, lat, :res::int) AS cell_id
 FROM public.elephant_vertices;
 
 DROP TABLE IF EXISTS public.elephant_vertex_cell_geom;
@@ -33,7 +33,15 @@ SELECT
     part,
     cell_id,
     ST_SetSRID(
-        ST_GeomFromGeoJSON(a5_cell_id_boundary_geojson(cell_id)),
+        ST_GeomFromGeoJSON(
+            jsonb_build_object(
+                'type', 'Polygon',
+                'coordinates', jsonb_build_array(
+                    (SELECT jsonb_agg(jsonb_build_array(point[1], point[2]))
+                     FROM unnest(a5_cell_to_boundary(cell_id)) AS point)
+                )
+            )::text
+        ),
         4326
     ) AS geom
 FROM public.elephant_vertices_cells;
