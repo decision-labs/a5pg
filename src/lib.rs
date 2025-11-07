@@ -14,7 +14,7 @@ fn a5pg_version() -> &'static str {
 fn a5pg_info() -> pgrx::JsonB {
     pgrx::JsonB(serde_json::json!({
         "a5pg_version": env!("CARGO_PKG_VERSION"),
-        "a5_version": "0.6"
+        "a5_version": "0.6.1"
     }))
 }
 
@@ -39,11 +39,6 @@ fn a5_lonlat_to_cell(lon: f64, lat: f64, resolution: i32) -> i64 {
 #[pg_extern]
 fn a5_cell_to_lonlat(cell_id: i64) -> Option<Vec<f64>> {
     let id_u64 = cell_id as u64;
-    // WORLD_CELL (0) is a special case - return (0.0, 0.0) immediately
-    // This avoids potential deadlocks in DodecahedronProjection::get_global() initialization
-    if id_u64 == 0 {
-        return Some(vec![0.0, 0.0]);
-    }
     let ll = cell_to_lonlat(id_u64).ok()?;
     let (lon, lat) = ll.to_degrees();
     Some(vec![lon, lat])
@@ -54,11 +49,6 @@ fn a5_cell_to_lonlat(cell_id: i64) -> Option<Vec<f64>> {
 #[pg_extern]
 fn a5_cell_to_boundary(cell_id: i64) -> Option<Vec<Vec<f64>>> {
     let id = cell_id as u64;
-    // WORLD_CELL (0) is a special case - return empty boundary immediately
-    // This avoids potential deadlocks in DodecahedronProjection::get_global() initialization
-    if id == 0 {
-        return Some(Vec::new());
-    }
     let ring = a5::cell_to_boundary(id, None).ok()?; // Vec<LonLat>
     Some(
         ring.into_iter()
@@ -213,9 +203,9 @@ mod tests {
         let a5pg_version = v.get("a5pg_version").and_then(|x| x.as_str()).unwrap();
         assert_eq!(a5pg_version, env!("CARGO_PKG_VERSION"));
 
-        // Verify a5_version is "0.6"
+        // Verify a5_version is "0.6.1"
         let a5_version = v.get("a5_version").and_then(|x| x.as_str()).unwrap();
-        assert_eq!(a5_version, "0.6");
+        assert_eq!(a5_version, "0.6.1");
 
         // Print the info for visibility
         eprintln!(
