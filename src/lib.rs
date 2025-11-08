@@ -46,10 +46,49 @@ fn a5_cell_to_lonlat(cell_id: i64) -> Option<Vec<f64>> {
 
 /// Boundary of a cell id (BIGINT) as array of [lon, lat] coordinate pairs.
 /// Returns double precision[][] where each inner array is [lon, lat].
+/// Uses default options: closed_ring=true, segments=auto.
 #[pg_extern]
 fn a5_cell_to_boundary(cell_id: i64) -> Option<Vec<Vec<f64>>> {
+    a5_cell_to_boundary_with_options(cell_id, true, None)
+}
+
+/// Boundary of a cell id with closed_ring option.
+/// closed_ring: if true, closes the ring by repeating the first point at the end.
+#[pg_extern(name = "a5_cell_to_boundary")]
+fn a5_cell_to_boundary_closed_ring(cell_id: i64, closed_ring: bool) -> Option<Vec<Vec<f64>>> {
+    a5_cell_to_boundary_with_options(cell_id, closed_ring, None)
+}
+
+/// Boundary of a cell id with closed_ring and segments options.
+/// closed_ring: if true, closes the ring by repeating the first point at the end.
+/// segments: number of segments per edge (if <= 0, uses resolution-appropriate value).
+#[pg_extern(name = "a5_cell_to_boundary")]
+fn a5_cell_to_boundary_full(cell_id: i64, closed_ring: bool, segments: i32) -> Option<Vec<Vec<f64>>> {
+    a5_cell_to_boundary_with_options(cell_id, closed_ring, Some(segments))
+}
+
+/// Internal helper function that constructs CellToBoundaryOptions and calls the a5 library.
+fn a5_cell_to_boundary_with_options(
+    cell_id: i64,
+    closed_ring: bool,
+    segments: Option<i32>,
+) -> Option<Vec<Vec<f64>>> {
     let id = cell_id as u64;
-    let ring = a5::cell_to_boundary(id, None).ok()?; // Vec<LonLat>
+    
+    // Construct options manually since CellToBoundaryOptions is not exported
+    // We need to use the internal API or construct via Option
+    // Since we can't access CellToBoundaryOptions directly, we'll use a workaround:
+    // Call with None and handle closed_ring manually, or use the internal module
+    
+    // For now, let's use the a5::core::cell module directly
+    use a5::core::cell::{cell_to_boundary as a5_cell_to_boundary_internal, CellToBoundaryOptions};
+    
+    let options = CellToBoundaryOptions {
+        closed_ring,
+        segments: segments.filter(|&s| s > 0),
+    };
+    
+    let ring = a5_cell_to_boundary_internal(id, Some(options)).ok()?;
     Some(
         ring.into_iter()
             .map(|p| {
