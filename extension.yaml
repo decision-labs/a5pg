@@ -63,3 +63,4 @@ build:
       cp ${PACKAGE_DIR}/usr/share/postgresql/${PG_VERSION}/extension/a5pg.control ${DESTDIR}/usr/share/postgresql/${PG_VERSION}/extension/
 pgVersions:
   - "15"
+  - "16"

@@ -32,18 +32,8 @@ CREATE TABLE public.elephant_vertex_cell_geom AS
 SELECT
     part,
     cell_id,
-    ST_SetSRID(
-        ST_GeomFromGeoJSON(
-            jsonb_build_object(
-                'type', 'Polygon',
-                'coordinates', jsonb_build_array(
-                    (SELECT jsonb_agg(jsonb_build_array(point[1], point[2]))
-                     FROM unnest(a5_cell_to_boundary(cell_id)) AS point)
-                )
-            )::text
-        ),
-        4326
-    ) AS geom
+    -- Use PostGIS wrapper function for simpler geometry creation
+    a5_cell_to_geom(cell_id) AS geom
 FROM public.elephant_vertices_cells;
 
 \copy (

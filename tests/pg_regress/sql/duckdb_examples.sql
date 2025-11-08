@@ -71,8 +71,8 @@ WITH boundary AS (
 )
 SELECT 
   num_points,
-  -- First and last should be same for closed ring (default)
-  (coords[1] = coords[num_points]) AS is_closed_ring
+  -- First and last should be same for closed ring (default) - compare individual elements
+  (coords[1][1] = coords[num_points][1] AND coords[1][2] = coords[num_points][2]) AS is_closed_ring
 FROM boundary;
 
 -- Example 10: Get boundary with closed_ring=false and segments=5
@@ -83,8 +83,8 @@ WITH boundary AS (
 )
 SELECT 
   array_length(coords, 1) AS num_points,
-  -- First and last should be different for open ring
-  (coords[1] != coords[array_length(coords, 1)]) AS is_open_ring,
+  -- First and last should be different for open ring - compare individual elements
+  (coords[1][1] != coords[array_length(coords, 1)][1] OR coords[1][2] != coords[array_length(coords, 1)][2]) AS is_open_ring,
   -- Should have more points than default due to segments=5
   (array_length(coords, 1) > 5) AS has_more_segments
 FROM boundary;

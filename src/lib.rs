@@ -1,6 +1,10 @@
 use pgrx::prelude::*;
 
-use a5::{cell_to_lonlat, lonlat_to_cell, LonLat};
+use a5::{
+    cell_to_lonlat, lonlat_to_cell, LonLat,
+    cell_area, get_num_cells, get_res0_cells,
+    compact, uncompact,
+};
 
 pgrx::pg_module_magic!();
 
@@ -47,24 +51,31 @@ fn a5_cell_to_lonlat(cell_id: i64) -> Option<Vec<f64>> {
 /// Boundary of a cell id (BIGINT) as array of [lon, lat] coordinate pairs.
 /// Returns double precision[][] where each inner array is [lon, lat].
 /// Uses default options: closed_ring=true, segments=auto.
-#[pg_extern]
-fn a5_cell_to_boundary(cell_id: i64) -> Option<Vec<Vec<f64>>> {
-    a5_cell_to_boundary_with_options(cell_id, true, None)
+/// 
+/// Note: Returns flattened array internally, wrapped by SQL function to match DuckDB 2D array API.
+#[pg_extern(name = "a5_cell_to_boundary_internal")]
+fn a5_cell_to_boundary_internal_flat(cell_id: i64) -> Option<Vec<f64>> {
+    let boundary = a5_cell_to_boundary_with_options(cell_id, true, None)?;
+    Some(boundary.into_iter().flatten().collect())
 }
 
-/// Boundary of a cell id with closed_ring option.
+/// Boundary of a cell id with closed_ring option (internal).
+/// Returns flattened array [lon1, lat1, lon2, lat2, ...].
 /// closed_ring: if true, closes the ring by repeating the first point at the end.
-#[pg_extern(name = "a5_cell_to_boundary")]
-fn a5_cell_to_boundary_closed_ring(cell_id: i64, closed_ring: bool) -> Option<Vec<Vec<f64>>> {
-    a5_cell_to_boundary_with_options(cell_id, closed_ring, None)
+#[pg_extern(name = "a5_cell_to_boundary_internal")]
+fn a5_cell_to_boundary_closed_ring(cell_id: i64, closed_ring: bool) -> Option<Vec<f64>> {
+    let boundary = a5_cell_to_boundary_with_options(cell_id, closed_ring, None)?;
+    Some(boundary.into_iter().flatten().collect())
 }
 
-/// Boundary of a cell id with closed_ring and segments options.
+/// Boundary of a cell id with closed_ring and segments options (internal).
+/// Returns flattened array [lon1, lat1, lon2, lat2, ...].
 /// closed_ring: if true, closes the ring by repeating the first point at the end.
 /// segments: number of segments per edge (if <= 0, uses resolution-appropriate value).
-#[pg_extern(name = "a5_cell_to_boundary")]
-fn a5_cell_to_boundary_full(cell_id: i64, closed_ring: bool, segments: i32) -> Option<Vec<Vec<f64>>> {
-    a5_cell_to_boundary_with_options(cell_id, closed_ring, Some(segments))
+#[pg_extern(name = "a5_cell_to_boundary_internal")]
+fn a5_cell_to_boundary_full(cell_id: i64, closed_ring: bool, segments: i32) -> Option<Vec<f64>> {
+    let boundary = a5_cell_to_boundary_with_options(cell_id, closed_ring, Some(segments))?;
+    Some(boundary.into_iter().flatten().collect())
 }
 
 /// Internal helper function that constructs CellToBoundaryOptions and calls the a5 library.
@@ -139,27 +150,195 @@ fn a5_cell_to_children(cell_id: i64, target_resolution: i32) -> Vec<i64> {
     }
 }
 
+/// Returns the area of a cell at a given resolution in square meters.
+#[pg_extern]
+fn a5_cell_area(resolution: i32) -> f64 {
+    cell_area(resolution)
+}
+
+/// Returns the total number of cells at a given resolution.
+#[pg_extern]
+fn a5_get_num_cells(resolution: i32) -> i64 {
+    let num = get_num_cells(resolution);
+    let Ok(as_i64) = i64::try_from(num) else {
+        pgrx::error!("Number of cells at resolution {} does not fit into BIGINT", resolution);
+    };
+    as_i64
+}
+
+/// Returns all 12 base cells at resolution 0.
+#[pg_extern]
+fn a5_get_res0_cells() -> Vec<i64> {
+    match get_res0_cells() {
+        Ok(cells) => cells
+            .into_iter()
+            .map(|c| {
+                let Ok(as_i64) = i64::try_from(c) else {
+                    pgrx::error!("res0 cell id does not fit into BIGINT");
+                };
+                as_i64
+            })
+            .collect(),
+        Err(e) => pgrx::error!("{e}"),
+    }
+}
+
+/// Compacts cells by replacing complete sibling groups with parents.
+#[pg_extern]
+fn a5_compact(cell_ids: Vec<i64>) -> Vec<i64> {
+    let cells_u64: Vec<u64> = cell_ids.iter().map(|&id| id as u64).collect();
+    match compact(&cells_u64) {
+        Ok(compacted) => compacted
+            .into_iter()
+            .map(|c| {
+                let Ok(as_i64) = i64::try_from(c) else {
+                    pgrx::error!("compacted cell id does not fit into BIGINT");
+                };
+                as_i64
+            })
+            .collect(),
+        Err(e) => pgrx::error!("{e}"),
+    }
+}
+
+/// Expands cells to target resolution by generating all descendant cells.
+#[pg_extern]
+fn a5_uncompact(cell_ids: Vec<i64>, target_resolution: i32) -> Vec<i64> {
+    let cells_u64: Vec<u64> = cell_ids.iter().map(|&id| id as u64).collect();
+    match uncompact(&cells_u64, target_resolution) {
+        Ok(uncompacted) => uncompacted
+            .into_iter()
+            .map(|c| {
+                let Ok(as_i64) = i64::try_from(c) else {
+                    pgrx::error!("uncompacted cell id does not fit into BIGINT");
+                };
+                as_i64
+            })
+            .collect(),
+        Err(e) => pgrx::error!("{e}"),
+    }
+}
+
 use pgrx::prelude::extension_sql;
 
 //
+// BOUNDARY WRAPPER (reconstructs 2D array from flattened internal function to match DuckDB API)
+//
+extension_sql!(
+    r#"
+-- Reconstruct 2D array from flattened array to match DuckDB API (coords[1][1] syntax)
+CREATE OR REPLACE FUNCTION a5_cell_to_boundary(cell_id bigint)
+RETURNS double precision[][]
+LANGUAGE sql
+IMMUTABLE
+PARALLEL SAFE
+STRICT
+AS $$
+  SELECT array_agg(ARRAY[coords[i*2-1], coords[i*2]] ORDER BY i)
+  FROM a5_cell_to_boundary_internal(cell_id) AS coords,
+       generate_series(1, array_length(a5_cell_to_boundary_internal(cell_id), 1) / 2) AS i;
+$$;
+
+CREATE OR REPLACE FUNCTION a5_cell_to_boundary(cell_id bigint, closed_ring bool)
+RETURNS double precision[][]
+LANGUAGE sql
+IMMUTABLE
+PARALLEL SAFE
+STRICT
+AS $$
+  SELECT array_agg(ARRAY[coords[i*2-1], coords[i*2]] ORDER BY i)
+  FROM a5_cell_to_boundary_internal(cell_id, closed_ring) AS coords,
+       generate_series(1, array_length(a5_cell_to_boundary_internal(cell_id, closed_ring), 1) / 2) AS i;
+$$;
+
+CREATE OR REPLACE FUNCTION a5_cell_to_boundary(cell_id bigint, closed_ring bool, segments int)
+RETURNS double precision[][]
+LANGUAGE sql
+IMMUTABLE
+PARALLEL SAFE
+STRICT
+AS $$
+  SELECT array_agg(ARRAY[coords[i*2-1], coords[i*2]] ORDER BY i)
+  FROM a5_cell_to_boundary_internal(cell_id, closed_ring, segments) AS coords,
+       generate_series(1, array_length(a5_cell_to_boundary_internal(cell_id, closed_ring, segments), 1) / 2) AS i;
+$$;
+"#,
+    name = "a5_boundary_wrapper",
+);
+
+//
 // POSTGIS WRAPPER (optional – only installed if PostGIS / geometry exists)
+// Must come after boundary wrapper so a5_cell_to_boundary exists
 //
 extension_sql!(
     r#"
 DO $wrapper$
 BEGIN
-  IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'geometry') THEN
-    EXECUTE '
-      CREATE OR REPLACE FUNCTION a5_point_to_cell(geom geometry, res int)
-      RETURNS bigint
-      LANGUAGE sql
-      IMMUTABLE
-      PARALLEL SAFE
-      STRICT
-      AS $f$
-        SELECT a5_lonlat_to_cell(ST_X(geom), ST_Y(geom), res);
-      $f$;
-    ';
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis') THEN
+    BEGIN
+      -- Get the schema name for geometry type
+      DECLARE
+        geom_schema text;
+      BEGIN
+        SELECT n.nspname INTO geom_schema
+        FROM pg_type t
+        JOIN pg_namespace n ON t.typnamespace = n.oid
+        WHERE t.typname = 'geometry'
+        LIMIT 1;
+        
+        -- Create function with schema-qualified geometry type
+        EXECUTE format('
+          CREATE OR REPLACE FUNCTION a5_point_to_cell(geom %I.geometry, res int)
+          RETURNS bigint
+          LANGUAGE sql
+          IMMUTABLE
+          PARALLEL SAFE
+          STRICT
+          AS $f$
+            SELECT a5_lonlat_to_cell(%I.ST_X(geom), %I.ST_Y(geom), res);
+          $f$;
+          
+          CREATE OR REPLACE FUNCTION a5_cell_to_point(cell_id bigint)
+          RETURNS %I.geometry
+          LANGUAGE sql
+          IMMUTABLE
+          PARALLEL SAFE
+          STRICT
+          AS $f$
+            SELECT %I.ST_SetSRID(%I.ST_MakePoint(coords[1], coords[2]), 4326)
+            FROM (SELECT a5_cell_to_lonlat(cell_id) AS coords) AS t;
+          $f$;
+          
+          CREATE OR REPLACE FUNCTION a5_cell_to_geom(cell_id bigint)
+          RETURNS %I.geometry
+          LANGUAGE sql
+          IMMUTABLE
+          PARALLEL SAFE
+          STRICT
+          AS $f$
+            WITH boundary AS (
+              SELECT a5_cell_to_boundary(cell_id) AS coords
+            )
+            SELECT %I.ST_SetSRID(
+              %I.ST_MakePolygon(
+                %I.ST_MakeLine(
+                  array_agg(
+                    %I.ST_MakePoint(coords[i][1], coords[i][2])
+                    ORDER BY i
+                  )
+                )
+              ),
+              4326
+            )
+            FROM boundary,
+                 generate_series(1, array_length((SELECT coords FROM boundary), 1)) AS i;
+          $f$;
+        ', geom_schema, geom_schema, geom_schema, geom_schema, geom_schema, geom_schema, geom_schema, geom_schema, geom_schema, geom_schema, geom_schema);
+      END;
+    EXCEPTION WHEN OTHERS THEN
+      -- Ignore errors (e.g., if PostGIS functions don't exist)
+      NULL;
+    END;
   END IF;
 END;
 $wrapper$;

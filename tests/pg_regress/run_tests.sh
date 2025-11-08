@@ -30,8 +30,9 @@ if [ ! -f "${PG_REGRESS}" ]; then
     trap "dropdb '${TEST_DB}' 2>/dev/null || true" EXIT
     
     psql "${TEST_DB}" -c "CREATE EXTENSION IF NOT EXISTS a5pg;" > /dev/null 2>&1
+    psql "${TEST_DB}" -c "CREATE EXTENSION IF NOT EXISTS postgis;" > /dev/null 2>&1
     
-    FILTER_PATTERN='ERROR\|HINT\|CONTEXT\|PL/pgSQL\|geometry\|LINE\|^$\|^Output format'
+    FILTER_PATTERN='ERROR\|HINT\|CONTEXT\|PL/pgSQL\|geometry\|LINE\|^$\|^Output format\|NOTICE\|psql:\|^SET$\|^\s*\^\|^QUERY:\|^CREATE\|^DROP\|^DETAIL:'
     
     run_test() {
         local test_name=$1
