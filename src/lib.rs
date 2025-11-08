@@ -393,13 +393,11 @@ mod tests {
     #[pg_test]
     fn a5pg_boundary_is_polygon() {
         let id = a5_lonlat_to_cell(-73.9857, 40.7580, 10);
-        let boundary = a5_cell_to_boundary(id).expect("boundary coordinates");
+        let boundary = a5_cell_to_boundary_internal_flat(id).expect("boundary coordinates");
         assert!(!boundary.is_empty(), "boundary should not be empty");
-        assert!(boundary.len() > 3, "boundary should have at least 3 points");
-        // Verify each point is [lon, lat]
-        for point in &boundary {
-            assert_eq!(point.len(), 2, "each boundary point should be [lon, lat]");
-        }
+        assert!(boundary.len() >= 6, "boundary should have at least 6 coordinate values (3 points * 2 coords)");
+        // Verify coordinates are in pairs [lon, lat, lon, lat, ...]
+        assert_eq!(boundary.len() % 2, 0, "boundary should have even number of coordinates");
     }
 
     #[pg_test]
