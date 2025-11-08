@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2024-12-XX
+
+### Added
+- **Utility functions** for DuckDB API compatibility:
+  - `a5_cell_area(resolution)` - Returns cell area in square meters for a resolution level
+  - `a5_get_num_cells(resolution)` - Returns total number of cells at a resolution
+  - `a5_get_res0_cells()` - Returns all 12 base cells at resolution 0
+  - `a5_compact(cell_ids)` - Compacts cells by replacing complete sibling groups with parents
+  - `a5_uncompact(cell_ids, target_resolution)` - Expands cells to target resolution
+- **PostGIS geometry conversion functions**:
+  - `a5_cell_to_point(cell_id)` - Convert cell ID to PostGIS point geometry
+  - `a5_cell_to_geom(cell_id)` - Convert cell ID to PostGIS polygon geometry
+- **Optional parameters for `a5_cell_to_boundary`**:
+  - `a5_cell_to_boundary(cell_id, closed_ring)` - Control whether ring is closed
+  - `a5_cell_to_boundary(cell_id, closed_ring, segments)` - Control ring closure and segment count
+
+### Changed
+- `a5_cell_to_boundary()` now returns `double precision[][]` (2D array) to match DuckDB API, enabling `coords[1][1]` syntax
+- Improved PostGIS integration with schema-aware function creation
+
+### Fixed
+- Code formatting standardized with `cargo fmt`
+
 ## [0.2.0] - 2024-11-07
 
 ### Breaking Changes

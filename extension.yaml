@@ -1,9 +1,9 @@
 apiVersion: v1
 name: a5pg
-version: "0.2.0"
+version: "0.3.0"
 homepage: https://github.com/decision-labs/a5pg
 repository: https://github.com/decision-labs/a5pg
-source: https://github.com/decision-labs/a5pg/archive/refs/tags/v0.2.0.tar.gz
+source: https://github.com/decision-labs/a5pg/archive/refs/tags/v0.3.0.tar.gz
 description: Equal-area A5 spatial index for PostgreSQL. A5 is a Discrete Global Grid System based on irregular pentagons, offering low areal distortion ideal for mapping densities across different cities and continents.
 license: Apache-2.0
 keywords:

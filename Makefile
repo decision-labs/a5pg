@@ -29,7 +29,7 @@ install: ## Install the extension for the default Postgres version
 installcheck: test ## Run tests (standard target for packaging tools)
 
 schema: ## Generate SQL schema for the default Postgres version
-	cargo pgrx schema pg$(PG_VERSION) 2>/dev/null > sql/a5pg--0.2.0.sql
+	cargo pgrx schema pg$(PG_VERSION) 2>/dev/null > sql/a5pg--0.3.0.sql
 
 fmt: ## Format code with rustfmt
 	cargo fmt --all
