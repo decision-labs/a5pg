@@ -1,9 +1,8 @@
 use pgrx::prelude::*;
 
 use a5::{
-    cell_to_lonlat, lonlat_to_cell, LonLat,
-    cell_area, get_num_cells, get_res0_cells,
-    compact, uncompact,
+    cell_area, cell_to_lonlat, compact, get_num_cells, get_res0_cells, lonlat_to_cell, uncompact,
+    LonLat,
 };
 
 pgrx::pg_module_magic!();
@@ -51,7 +50,7 @@ fn a5_cell_to_lonlat(cell_id: i64) -> Option<Vec<f64>> {
 /// Boundary of a cell id (BIGINT) as array of [lon, lat] coordinate pairs.
 /// Returns double precision[][] where each inner array is [lon, lat].
 /// Uses default options: closed_ring=true, segments=auto.
-/// 
+///
 /// Note: Returns flattened array internally, wrapped by SQL function to match DuckDB 2D array API.
 #[pg_extern(name = "a5_cell_to_boundary_internal")]
 fn a5_cell_to_boundary_internal_flat(cell_id: i64) -> Option<Vec<f64>> {
@@ -85,20 +84,20 @@ fn a5_cell_to_boundary_with_options(
     segments: Option<i32>,
 ) -> Option<Vec<Vec<f64>>> {
     let id = cell_id as u64;
-    
+
     // Construct options manually since CellToBoundaryOptions is not exported
     // We need to use the internal API or construct via Option
     // Since we can't access CellToBoundaryOptions directly, we'll use a workaround:
     // Call with None and handle closed_ring manually, or use the internal module
-    
+
     // For now, let's use the a5::core::cell module directly
     use a5::core::cell::{cell_to_boundary as a5_cell_to_boundary_internal, CellToBoundaryOptions};
-    
+
     let options = CellToBoundaryOptions {
         closed_ring,
         segments: segments.filter(|&s| s > 0),
     };
-    
+
     let ring = a5_cell_to_boundary_internal(id, Some(options)).ok()?;
     Some(
         ring.into_iter()
@@ -161,7 +160,10 @@ fn a5_cell_area(resolution: i32) -> f64 {
 fn a5_get_num_cells(resolution: i32) -> i64 {
     let num = get_num_cells(resolution);
     let Ok(as_i64) = i64::try_from(num) else {
-        pgrx::error!("Number of cells at resolution {} does not fit into BIGINT", resolution);
+        pgrx::error!(
+            "Number of cells at resolution {} does not fit into BIGINT",
+            resolution
+        );
     };
     as_i64
 }
@@ -395,9 +397,16 @@ mod tests {
         let id = a5_lonlat_to_cell(-73.9857, 40.7580, 10);
         let boundary = a5_cell_to_boundary_internal_flat(id).expect("boundary coordinates");
         assert!(!boundary.is_empty(), "boundary should not be empty");
-        assert!(boundary.len() >= 6, "boundary should have at least 6 coordinate values (3 points * 2 coords)");
+        assert!(
+            boundary.len() >= 6,
+            "boundary should have at least 6 coordinate values (3 points * 2 coords)"
+        );
         // Verify coordinates are in pairs [lon, lat, lon, lat, ...]
-        assert_eq!(boundary.len() % 2, 0, "boundary should have even number of coordinates");
+        assert_eq!(
+            boundary.len() % 2,
+            0,
+            "boundary should have even number of coordinates"
+        );
     }
 
     #[pg_test]
