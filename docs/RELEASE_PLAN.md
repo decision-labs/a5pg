@@ -10,7 +10,9 @@
 - [x] SQL tests passing (`tests/pg_regress/run_tests.sh`) - verified, edge cases correctly error
 
 ### 2. Version Update ✅
-- [x] Update version in `Cargo.toml` (e.g., `0.1.0` → `0.2.0`)
+- [x] Update version in `Cargo.toml` (e.g., `0.2.0` → `0.3.0`)
+- [x] Update version in `extension.yaml` (for pgxman)
+- [x] Update source URL in `extension.yaml` to point to new tag
 - [x] Note: `a5pg.control` uses `@CARGO_VERSION@` template (auto-updated by pgrx)
 - [x] Regenerate SQL schema: `make schema` (updates `sql/a5pg--<version>.sql`)
 - [x] Update `README.md` if version mentioned
@@ -64,14 +66,19 @@ git checkout -b release/v<version>
 1. Edit `Cargo.toml`: `version = "<version>"`
 2. Note: `a5pg.control` will auto-update via `@CARGO_VERSION@` template
 
-### Step 3: Regenerate SQL Schema ⚠️ CRITICAL
+### Step 3: Update extension.yaml for pgxman
+1. Update `version` field in `extension.yaml`
+2. Update `source` URL to point to new tag (e.g., `v0.3.0`)
+3. Ensure all build steps are correct
+
+### Step 4: Regenerate SQL Schema ⚠️ CRITICAL
 ```bash
 # Current SQL file has old function names - MUST regenerate!
 make schema
 # This generates: sql/a5pg--<version>.sql
 ```
 
-### Step 4: Create CHANGELOG.md
+### Step 5: Create CHANGELOG.md
 ```markdown
 # Changelog
 
@@ -108,7 +115,7 @@ If upgrading from 0.1.0:
 - Core A5 spatial indexing functions
 ```
 
-### Step 5: Final Testing
+### Step 6: Final Testing
 ```bash
 # Run all tests
 make test-all
@@ -123,34 +130,48 @@ make fmt-check
 psql -d testdb -f sql/a5pg--<version>.sql
 ```
 
-### Step 6: Commit and Tag
+### Step 7: Commit and Tag
 ```bash
 git add .
 git commit -m "chore: release v<version>"
 git tag -a v<version> -m "Release v<version>"
 ```
 
-### Step 7: Push to GitHub
+### Step 8: Push to GitHub
 ```bash
 git push origin release/v<version>
 git push origin v<version>
 ```
 
-### Step 8: Create GitHub Release
+### Step 9: Create GitHub Release
 1. Go to GitHub repository → Releases → Draft a new release
 2. Tag: `v<version>`
 3. Title: `Release v<version>`
 4. Description: Copy from CHANGELOG.md
 5. Mark as "Latest release" if this is the newest version
 
-### Step 9: Merge to Main
+### Step 9b: Update pgxman Buildkit (if applicable)
+- [ ] Ensure `extension.yaml` is up to date with correct version and source URL
+- [ ] Submit/update PR to pgxman buildkit repository:
+  - PR: https://github.com/pgxman/buildkit/pull/112/
+  - This makes the extension available via `pgxman install a5pg`
+- [ ] Wait for PR approval and merge
+
+### Step 9c: Add Documentation to Official a5 Repo (pending)
+- [ ] Add PostgreSQL extension documentation to Felix Palmer's a5 repository:
+  - Repository: https://github.com/felixpalmer/a5
+  - Document a5pg as a PostgreSQL implementation of the A5 DGGS
+  - Include installation instructions and usage examples
+  - Link to this repository for full documentation
+
+### Step 10: Merge to Main
 ```bash
 git checkout main
 git merge release/v<version>
 git push origin main
 ```
 
-### Step 10: Publish to crates.io (if applicable)
+### Step 11: Publish to crates.io (if applicable)
 ```bash
 # Verify package
 cargo package --dry-run
@@ -216,8 +237,11 @@ echo "  4. Create GitHub release at: https://github.com/<org>/a5pg/releases/new"
 - ✅ Tests updated and passing
 - ✅ Documentation updated (README.md, CHANGELOG.md)
 - ✅ SQL schema regenerated (`sql/a5pg--0.2.0.sql` with correct function names, no ANSI codes)
-- ✅ Version updated to 0.2.0
+- ✅ Version updated to 0.3.0
 - ✅ Makefile updated
+- ✅ Extension.yaml updated with version 0.3.0
+- ✅ pgxman buildkit PR: https://github.com/pgxman/buildkit/pull/112/
+- ⏳ Pending: Add documentation to official a5 repo (https://github.com/felixpalmer/a5)
 - ✅ All pre-release checks complete
 
 ## Ready for Release! 🚀
@@ -227,26 +251,37 @@ All pre-release tasks are complete. Next steps:
 1. **Commit changes**:
    ```bash
    git add .
-   git commit -m "chore: release v0.2.0"
+   git commit -m "chore: release v0.3.0"
    ```
 
 2. **Create tag**:
    ```bash
-   git tag -a v0.2.0 -m "Release v0.2.0"
+   git tag -a v0.3.0 -m "Release v0.3.0"
    ```
 
 3. **Push to GitHub**:
    ```bash
    git push origin main
-   git push origin v0.2.0
+   git push origin v0.3.0
    ```
 
 4. **Create GitHub Release**:
-   - Go to: https://github.com/<org>/a5pg/releases/new
-   - Tag: `v0.2.0`
-   - Title: `Release v0.2.0`
+   - Go to: https://github.com/decision-labs/a5pg/releases/new
+   - Tag: `v0.3.0`
+   - Title: `Release v0.3.0`
    - Description: Copy from `CHANGELOG.md`
    - Mark as "Latest release"
+
+5. **Update pgxman Buildkit PR** (if needed):
+   - PR: https://github.com/pgxman/buildkit/pull/112/
+   - Ensure `extension.yaml` in the PR matches the current version (0.3.0)
+   - Update source URL to point to v0.3.0 tag
+
+6. **Add Documentation to Official a5 Repo** (pending):
+   - Repository: https://github.com/felixpalmer/a5
+   - Add PostgreSQL extension documentation
+   - Include installation and usage examples
+   - Link to this repository for full documentation
 
 ## Notes
 
