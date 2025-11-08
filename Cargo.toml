@@ -1,6 +1,6 @@
 [package]
 name = "a5pg"
-version = "0.1.0"
+version = "0.3.0"
 edition = "2021"
 license = "Apache-2.0"
 description = "Equal-area A5 spatial index for PostgreSQL"
@@ -25,7 +25,7 @@ pg_test = []
 
 [dependencies]
 pgrx = "=0.16.1"
-a5 = "0.6"
+a5 = "0.6.1"
 serde_json = "1"
 
 

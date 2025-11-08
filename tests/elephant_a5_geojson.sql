@@ -23,7 +23,7 @@ DROP TABLE IF EXISTS public.elephant_vertices_cells;
 CREATE TABLE public.elephant_vertices_cells AS
 SELECT DISTINCT
     part,
-    a5_lonlat_to_cell_id(lon, lat, :res::int) AS cell_id
+    a5_lonlat_to_cell(lon, lat, :res::int) AS cell_id
 FROM public.elephant_vertices;
 
 DROP TABLE IF EXISTS public.elephant_vertex_cell_geom;
@@ -32,10 +32,8 @@ CREATE TABLE public.elephant_vertex_cell_geom AS
 SELECT
     part,
     cell_id,
-    ST_SetSRID(
-        ST_GeomFromGeoJSON(a5_cell_id_boundary_geojson(cell_id)),
-        4326
-    ) AS geom
+    -- Use PostGIS wrapper function for simpler geometry creation
+    a5_cell_to_geom(cell_id) AS geom
 FROM public.elephant_vertices_cells;
 
 \copy (
