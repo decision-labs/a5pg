@@ -1,0 +1,66 @@
+apiVersion: v1
+name: a5pg
+version: "0.2.0"
+homepage: https://github.com/decision-labs/a5pg
+repository: https://github.com/decision-labs/a5pg
+source: https://github.com/decision-labs/a5pg/archive/refs/tags/v0.2.0.tar.gz
+description: Equal-area A5 spatial index for PostgreSQL. A5 is a Discrete Global Grid System based on irregular pentagons, offering low areal distortion ideal for mapping densities across different cities and continents.
+license: Apache-2.0
+keywords:
+  - a5
+  - geospatial
+  - dggs
+  - spatial-index
+arch:
+  - arm64
+maintainers:
+  - name: Shoaib Burq
+    email: shoaib@decision-labs.com
+build:
+  main:
+  - name: Setup Rust environment
+    run: |
+      export RUSTUP_HOME="$HOME/.rustup-pg${PG_VERSION}" CARGO_HOME="$HOME/.cargo-pg${PG_VERSION}" PATH="$HOME/.cargo-pg${PG_VERSION}/bin:$PATH"
+      mkdir -p "$RUSTUP_HOME/downloads" "$CARGO_HOME/bin"
+      if ! command -v rustc &> /dev/null; then
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+      else
+        rustup toolchain install stable --profile minimal 2>/dev/null || true
+        rustup default stable 2>/dev/null || true
+      fi
+      command -v cargo-pgrx &> /dev/null || cargo install cargo-pgrx --locked
+  - name: Initialize pgrx
+    run: |
+      export RUSTUP_HOME="$HOME/.rustup-pg${PG_VERSION}" \
+             CARGO_HOME="$HOME/.cargo-pg${PG_VERSION}" \
+             PATH="$HOME/.cargo-pg${PG_VERSION}/bin:$PATH"
+      cargo pgrx init --pg${PG_VERSION} /usr/lib/postgresql/${PG_VERSION}/bin/pg_config
+  - name: Build extension
+    run: |
+      export RUSTUP_HOME="$HOME/.rustup-pg${PG_VERSION}" \
+             CARGO_HOME="$HOME/.cargo-pg${PG_VERSION}" \
+             PATH="$HOME/.cargo-pg${PG_VERSION}/bin:$PATH"
+      cargo pgrx package --pg-config /usr/lib/postgresql/${PG_VERSION}/bin/pg_config
+  - name: Install extension files
+    run: |
+      PACKAGE_DIR="target/release/a5pg-pg${PG_VERSION}"
+      mkdir -p ${DESTDIR}/usr/lib/postgresql/${PG_VERSION}/lib \
+               ${DESTDIR}/usr/share/postgresql/${PG_VERSION}/extension
+      # Find and copy the .so file (pgrx package creates it in usr/lib/postgresql/VERSION/lib/)
+      SO_FILE="${PACKAGE_DIR}/usr/lib/postgresql/${PG_VERSION}/lib/a5pg.so"
+      if [ ! -f "$SO_FILE" ]; then
+        # Try alternative location or find it
+        SO_FILE=$(find ${PACKAGE_DIR} -name "*.so" -type f | head -1)
+      fi
+      if [ -f "$SO_FILE" ]; then
+        cp "$SO_FILE" ${DESTDIR}/usr/lib/postgresql/${PG_VERSION}/lib/a5pg.so
+      else
+        echo "Error: Could not find .so file in ${PACKAGE_DIR}" >&2
+        find ${PACKAGE_DIR} -type f -name "*.so" -o -name "lib*.so" | head -10
+        exit 1
+      fi
+      cp ${PACKAGE_DIR}/usr/share/postgresql/${PG_VERSION}/extension/a5pg--*.sql ${DESTDIR}/usr/share/postgresql/${PG_VERSION}/extension/
+      cp ${PACKAGE_DIR}/usr/share/postgresql/${PG_VERSION}/extension/a5pg.control ${DESTDIR}/usr/share/postgresql/${PG_VERSION}/extension/
+pgVersions:
+  - "15"
+  - "16"
