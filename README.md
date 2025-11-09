@@ -37,13 +37,6 @@ This ensures API compatibility while allowing independent bug fixes and PostgreS
 
 ## Installation
 
-### Using pgxman (recommended)
-
-```bash
-cargo install pgxman
-pgxman install a5pg
-```
-
 ### From Source
 
 ```bash
@@ -52,6 +45,10 @@ cargo pgrx install pg17  # or pg15, pg16
 ```
 
 Then enable: `CREATE EXTENSION a5pg;`
+
+### Using pgxman (coming soon)
+
+a5pg will be available via [pgxman](https://pgxman.com/) once published to the registry. See [pgxman Guide](docs/PGXMAN_GUIDE.md) for details.
 
 ## Development
 
