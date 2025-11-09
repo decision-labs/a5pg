@@ -1,4 +1,10 @@
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/decision-labs/a5pg/.github%2Fworkflows%2Fci.yml)
+![Ubuntu PostgreSQL 15](https://github.com/decision-labs/a5pg/actions/workflows/test-ubuntu-pg15.yml/badge.svg)
+![Ubuntu PostgreSQL 16](https://github.com/decision-labs/a5pg/actions/workflows/test-ubuntu-pg16.yml/badge.svg)
+![Ubuntu PostgreSQL 17](https://github.com/decision-labs/a5pg/actions/workflows/test-ubuntu-pg17.yml/badge.svg)
+![macOS PostgreSQL 15](https://github.com/decision-labs/a5pg/actions/workflows/test-macos-pg15.yml/badge.svg)
+![macOS PostgreSQL 16](https://github.com/decision-labs/a5pg/actions/workflows/test-macos-pg16.yml/badge.svg)
+![macOS PostgreSQL 17](https://github.com/decision-labs/a5pg/actions/workflows/test-macos-pg17.yml/badge.svg)
+![Lint](https://github.com/decision-labs/a5pg/actions/workflows/lint.yml/badge.svg)
 
 
 # a5pg
@@ -99,4 +105,4 @@ SELECT a5_cell_to_children(2742822465196523520, 12);
 - A5 DGGS created by [Felix Palmer](https://github.com/felixpalmer).
 - The pg-extension made with ❤️ by the [geobase.app](https://geobase.app) team.
 
-**CI:** Tests on `ubuntu-latest`, `macos-latest` with PostgreSQL 15, 16, 17. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+**CI:** Tests on `ubuntu-latest` and `macos-latest` with PostgreSQL 15, 16, 17. See [`.github/workflows/`](.github/workflows/).

@@ -1,0 +1,82 @@
+name: Test Ubuntu PostgreSQL 15
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'sql/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'a5pg.control'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'sql/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'a5pg.control'
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test Ubuntu PostgreSQL 15
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install PostgreSQL 15
+        run: |
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo apt-get update
+          sudo apt-get install -y postgresql-15 postgresql-server-dev-15
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-registry-
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-index-
+
+      - name: Cache target directory
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ubuntu-pg15-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ubuntu-pg15-target-
+
+      - name: Install cargo-pgrx
+        run: cargo install cargo-pgrx --locked
+
+      - name: Initialize pgrx with installed Postgres
+        run: |
+          cargo pgrx init --pg15 /usr/lib/postgresql/15/bin/pg_config
+          
+      - name: Setup permissions for extension install
+        run: |
+          sudo chmod -R a+w /usr/share/postgresql/15/extension
+          sudo chmod -R a+w /usr/lib/postgresql/15/lib
+          
+      - name: Run tests
+        run: cargo pgrx test pg15
+        env:
+          PGRX_HOME: /home/runner/.pgrx
+

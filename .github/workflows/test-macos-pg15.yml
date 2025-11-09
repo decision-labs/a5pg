@@ -1,0 +1,71 @@
+name: Test macOS PostgreSQL 15
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'sql/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'a5pg.control'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'sql/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'a5pg.control'
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test macOS PostgreSQL 15
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install PostgreSQL 15
+        run: brew install postgresql@15
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-registry-
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-index-
+
+      - name: Cache target directory
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: macos-pg15-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: macos-pg15-target-
+
+      - name: Install cargo-pgrx
+        run: cargo install cargo-pgrx --locked
+
+      - name: Initialize pgrx with Homebrew Postgres
+        run: |
+          cargo pgrx init --pg15 $(brew --prefix postgresql@15)/bin/pg_config
+          
+      - name: Run tests
+        run: cargo pgrx test pg15
+
