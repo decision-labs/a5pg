@@ -14,6 +14,14 @@ Equal-area A5 spatial index functions for PostgreSQL. A5 is a Discrete Global Gr
 
 **Links:** [A5 project](https://a5geo.org/) | [Rust crate](https://docs.rs/a5/latest/a5/)
 
+## Versioning Policy
+
+a5pg follows a versioning policy aligned with the underlying Rust library `a5`:
+- **MAJOR.MINOR** versions are kept aligned with the `a5` Rust crate
+- **PATCH** versions may diverge to track PostgreSQL extension-specific changes
+
+This ensures API compatibility while allowing independent bug fixes and PostgreSQL-specific improvements.
+
 ## Documentation
 
 - [Packaging Guide](docs/PACKAGING.md) - How to package and distribute a5pg
