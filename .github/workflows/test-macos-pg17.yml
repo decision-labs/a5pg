@@ -1,4 +1,4 @@
-name: Test macOS PostgreSQL 17
+name: pg17-macos
 
 on:
   push:
@@ -25,7 +25,7 @@ on:
 
 jobs:
   test:
-    name: Test macOS PostgreSQL 17
+    name: pg17-macos
     runs-on: macos-latest
     
     steps:

@@ -1,4 +1,4 @@
-name: Test Ubuntu PostgreSQL 17
+name: pg17-ubuntu
 
 on:
   push:
@@ -25,7 +25,7 @@ on:
 
 jobs:
   test:
-    name: Test Ubuntu PostgreSQL 17
+    name: pg17-ubuntu
     runs-on: ubuntu-latest
     
     steps:
